@@ -1,6 +1,9 @@
 // Uniswap V3 helper functions
-
 import { whype, usdt } from '../scripts/config.js';
+
+// TODO : ici on suppose que on rebalance la position lorsque elle est out of range, il faudrait faire les calculs (fonction 2) 
+// dans le cas a0*a1 not 0. 
+
 
 // petit probleme je vais comme si je swap au prix idéal, ce qui crée un petit décalage.
 // je pense que je dois mettre 0.5 de slipage sur le prix
@@ -8,6 +11,8 @@ function toSqrtPrice(tick) {
   return Math.pow(1.0001, tick / 2);
 }
 const slippage = 0.005;
+// Etant donnée (tick, ta,tb) : tick courant tick bas et tick haut de la positon et L la liquidité (au sens sans du contrat) donne
+// la quantité de token de la position (n'inclue pas les fees accumuler).
 
 function calculateExit({ tick, ta, tb, liquidity }) {
   const sqrtP = toSqrtPrice(tick);
@@ -27,6 +32,14 @@ function calculateExit({ tick, ta, tb, liquidity }) {
   return { a0, a1 };
 }
 
+
+// Etant donné a0, a1 tel que a0*a1=0, calcul le montant x de token qu'il faut swap pour 
+// (a-x,px) ou (x/p , b-x) soit conforme au range (ta,tb) pour le tick courant 
+// Ici il y a un probleme de swap donc j'introdujis un petit slippage.
+// Faudrait que je fasse un truc un peu différent pour augmenter la précission
+// 1. faire ce calcul, 2. simuler le swap 3. obtenir le prix réel du swap et modifier le slipage comme ca. 
+// ca devrait permettre d'optimiser un peu mieux. 
+
 function simulateRebalance({ tick, ta, tb, a0 = 0, a1 = 0 }) {
   const sqrtP = toSqrtPrice(tick);
   const sqrtPa = toSqrtPrice(ta);
@@ -40,14 +53,25 @@ function simulateRebalance({ tick, ta, tb, a0 = 0, a1 = 0 }) {
     p = (1-slippage) *p;
     // x est le montant a swaper pour obtenir une posiion équilibré dans le range.
     /*
+      Qu'un ce que ca change si j'ai (a0,a1) ? 
+          (a0-x,a1+px) proportionnelle a (alpha,beta)
+
+          alpha * (a1+px) = beta * (a0-x) 
+
+          -alpha a1 +beta a0 =  beta x +alpha px
+
+          x = (beta a0 - alpha a1) / (beta+alpha * p)
+
+    En gros, la condition pour savoir si je swap 0 to 1 c'est que 
+            (alpha  a0)
+        det (beta  a1)     soit negatid 
+            
+      
       Si L=1 alors 
         alpha = (1 / sqrtP) - (1 / sqrtPb);
         beta  =  sqrtP - sqrtPa;
-
         est une position compatible avec le range [ta,tb] et tick.
-
         Ma position doit etre proportielle a celle-ci
-
         je cherche x tel que :
           (a0-x,x*p) proportionelle a (alpha,beta)
     */
@@ -80,7 +104,7 @@ function simulateRebalance({ tick, ta, tb, a0 = 0, a1 = 0 }) {
   }
 }
 
-
+// ici juste l'enchainement des deux fonctions. 
 function calculateLiquidity({ tick, ta, tb, amount0, amount1 }) {
   const sqrtP = toSqrtPrice(tick);
   const sqrtPa = toSqrtPrice(ta);
