@@ -36,3 +36,17 @@ tu obtiens : x = (beta  a - alpha  b) / (beta + alpha * p)
 
 Ici attention c'est un x signé. Et donc x > 0 signifie que tu dois swap A vers B si et seulement si  beta a - alpha b > 0, et tu as la quantité donné par x.
 Si x < 0, alors tu dois swap B vers a en quantité de x/p. 
+
+
+
+
+Strategie (TODO) 
+
+Bande de bolinger. 
+
+B(k) = Ma + k sigma avec k in Z.
+Le but est de calculer,  un range en fonction de p le prix et les B(k).
+function Range(p,B) return k,j les indices des bandes de bolinger 
+la fonction de rebalance if current_range !== range(p,B) alors rebalance de la liquidité sur le range Range(p,B) 
+
+
